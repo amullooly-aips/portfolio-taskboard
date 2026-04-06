@@ -24,14 +24,15 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; c
 .sync-indicator { font-size: 0.75rem; color: #6b7280; }
 
 /* Board */
-.board { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
-@media (max-width: 768px) { .board { grid-template-columns: 1fr; } }
+.board { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; padding: 1.5rem; max-width: 1600px; margin: 0 auto; }
+@media (max-width: 1024px) { .board { grid-template-columns: 1fr; } }
 
 /* Column */
 .column { background: #1c1f2b; border: 1px solid #2d3148; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
 .column-header { padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: 600; font-size: 1rem; }
 .column-header.catherine { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
 .column-header.adam { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+.column-header.lindsey { background: linear-gradient(135deg, #059669, #10b981); }
 .add-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; padding: 0.35rem 0.85rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: background 0.2s; }
 .add-btn:hover { background: rgba(255,255,255,0.25); }
 
@@ -129,6 +130,13 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; c
             </div>
             <div id="col-adam" class="column-body"></div>
         </div>
+        <div class="column">
+            <div class="column-header lindsey">
+                <span>Lindsey</span>
+                <button class="add-btn" onclick="openModal('lindsey')">+ Add Task</button>
+            </div>
+            <div id="col-lindsey" class="column-body"></div>
+        </div>
     </div>
 </div>
 
@@ -145,6 +153,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; c
             <div class="toggle-group" id="fAssignee">
                 <button class="toggle-btn" data-val="catherine" onclick="setToggle('fAssignee','catherine')">Catherine</button>
                 <button class="toggle-btn" data-val="adam" onclick="setToggle('fAssignee','adam')">Adam</button>
+                <button class="toggle-btn" data-val="lindsey" onclick="setToggle('fAssignee','lindsey')">Lindsey</button>
             </div>
         </div>
         <div class="form-group">
@@ -257,6 +266,7 @@ async function loadTasks() {
 function renderBoard() {
     renderColumn("catherine");
     renderColumn("adam");
+    renderColumn("lindsey");
 }
 
 function renderColumn(assignee) {

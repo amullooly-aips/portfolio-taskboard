@@ -29,7 +29,7 @@ def init_db():
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            assignee TEXT NOT NULL CHECK(assignee IN ('adam', 'catherine')),
+            assignee TEXT NOT NULL CHECK(assignee IN ('adam', 'catherine', 'lindsey')),
             title TEXT NOT NULL,
             notes TEXT DEFAULT '',
             priority TEXT NOT NULL DEFAULT 'med' CHECK(priority IN ('high', 'med', 'low')),
@@ -47,6 +47,36 @@ def init_db():
             UPDATE tasks SET updated_at = datetime('now') WHERE id = OLD.id;
         END;
     """)
+    # Migrate: rebuild table if CHECK constraint doesn't include 'lindsey'
+    try:
+        conn.execute("INSERT INTO tasks (assignee, title) VALUES ('lindsey', '_migration_test')")
+        conn.execute("DELETE FROM tasks WHERE title = '_migration_test'")
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        conn.executescript("""
+            CREATE TABLE tasks_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                assignee TEXT NOT NULL CHECK(assignee IN ('adam', 'catherine', 'lindsey')),
+                title TEXT NOT NULL,
+                notes TEXT DEFAULT '',
+                priority TEXT NOT NULL DEFAULT 'med' CHECK(priority IN ('high', 'med', 'low')),
+                status TEXT NOT NULL DEFAULT 'todo' CHECK(status IN ('todo', 'in_progress', 'done')),
+                due_date TEXT,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            INSERT INTO tasks_new SELECT * FROM tasks;
+            DROP TABLE tasks;
+            ALTER TABLE tasks_new RENAME TO tasks;
+            CREATE TRIGGER IF NOT EXISTS update_timestamp
+            AFTER UPDATE ON tasks
+            FOR EACH ROW
+            BEGIN
+                UPDATE tasks SET updated_at = datetime('now') WHERE id = OLD.id;
+            END;
+        """)
     conn.commit()
     conn.close()
 
@@ -95,7 +125,7 @@ def create_task():
     data = request.get_json()
     if not data or not data.get("title") or not data.get("assignee"):
         return jsonify({"error": "title and assignee required"}), 400
-    if data["assignee"] not in ("adam", "catherine"):
+    if data["assignee"] not in ("adam", "catherine", "lindsey"):
         return jsonify({"error": "assignee must be adam or catherine"}), 400
 
     conn = get_db()

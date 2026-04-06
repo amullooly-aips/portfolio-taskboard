@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: portfolio-taskboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PASSPHRASE
+        sync: false
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

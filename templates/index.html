@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Acquisition Task Board</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; color: #1a1a1a; }
+
+/* Auth screen */
+.auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.auth-box { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 2rem; width: 320px; text-align: center; }
+.auth-box h1 { font-size: 1.2rem; margin-bottom: 1rem; }
+.auth-box input { width: 100%; padding: 0.6rem; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 1rem; margin-bottom: 0.75rem; }
+.auth-box button { width: 100%; padding: 0.6rem; background: #3b82f6; color: #fff; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+.auth-box button:hover { background: #2563eb; }
+.auth-error { color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; }
+
+/* Header */
+.header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 1.1rem; font-weight: 600; }
+.sync-indicator { font-size: 0.75rem; color: #888; }
+
+/* Board */
+.board { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+@media (max-width: 768px) { .board { grid-template-columns: 1fr; } }
+
+/* Column */
+.column { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+.column-header { padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: 600; font-size: 1rem; }
+.column-header.catherine { background: #8b5cf6; }
+.column-header.adam { background: #3b82f6; }
+.add-btn { background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 0.3rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+.add-btn:hover { background: rgba(255,255,255,0.4); }
+
+/* Status group */
+.status-group { padding: 0 0.75rem; }
+.status-group-header { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #666; padding: 0.75rem 0.25rem 0.4rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.status-group-header .count { background: #eee; border-radius: 10px; padding: 0.1rem 0.5rem; font-size: 0.7rem; }
+.status-group-header .toggle { font-size: 0.65rem; color: #999; }
+
+/* Task card */
+.task-card { border: 1px solid #e8e8e8; border-radius: 6px; padding: 0.6rem 0.75rem; margin: 0.5rem 0; background: #fff; transition: box-shadow 0.15s; }
+.task-card:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.task-card.done { opacity: 0.55; }
+.task-card.in-progress { border-left: 3px solid #f59e0b; }
+.task-top { display: flex; align-items: flex-start; gap: 0.5rem; }
+.task-checkbox { margin-top: 0.15rem; width: 16px; height: 16px; cursor: pointer; accent-color: #22c55e; flex-shrink: 0; }
+.task-body { flex: 1; min-width: 0; }
+.task-title { font-weight: 600; font-size: 0.9rem; word-break: break-word; }
+.task-title.done-title { text-decoration: line-through; color: #999; }
+.task-meta { display: flex; gap: 0.4rem; align-items: center; margin-top: 0.3rem; flex-wrap: wrap; }
+.badge { font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
+.badge-high { background: #fef2f2; color: #dc2626; }
+.badge-med { background: #fffbeb; color: #d97706; }
+.badge-low { background: #f3f4f6; color: #6b7280; }
+.due-date { font-size: 0.75rem; color: #666; }
+.due-date.overdue { color: #dc2626; font-weight: 600; }
+.task-notes { font-size: 0.8rem; color: #666; margin-top: 0.3rem; line-height: 1.4; cursor: pointer; }
+.task-actions { display: flex; gap: 0.15rem; flex-shrink: 0; margin-left: 0.25rem; }
+.task-actions button { background: none; border: none; cursor: pointer; padding: 0.2rem; font-size: 0.8rem; color: #aaa; border-radius: 3px; }
+.task-actions button:hover { color: #333; background: #f0f0f0; }
+.column-footer { padding: 0.75rem; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.active { display: flex; }
+.modal { background: #fff; border-radius: 8px; padding: 1.5rem; width: 420px; max-width: 90vw; max-height: 90vh; overflow-y: auto; }
+.modal h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+.form-group { margin-bottom: 0.9rem; }
+.form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 0.3rem; }
+.form-group input[type="text"], .form-group textarea, .form-group input[type="date"] {
+    width: 100%; padding: 0.5rem; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 0.9rem; font-family: inherit;
+}
+.form-group textarea { resize: vertical; min-height: 60px; }
+.toggle-group { display: flex; gap: 0; }
+.toggle-btn { flex: 1; padding: 0.4rem; border: 1px solid #d0d0d0; background: #fff; cursor: pointer; font-size: 0.8rem; font-weight: 500; text-align: center; }
+.toggle-btn:first-child { border-radius: 4px 0 0 4px; }
+.toggle-btn:last-child { border-radius: 0 4px 4px 0; }
+.toggle-btn + .toggle-btn { border-left: none; }
+.toggle-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.toggle-btn.active-high { background: #dc2626; color: #fff; border-color: #dc2626; }
+.toggle-btn.active-med { background: #d97706; color: #fff; border-color: #d97706; }
+.toggle-btn.active-low { background: #6b7280; color: #fff; border-color: #6b7280; }
+.modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.2rem; }
+.modal-actions button { padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.9rem; cursor: pointer; border: 1px solid #d0d0d0; }
+.btn-save { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.btn-save:hover { background: #2563eb; }
+.btn-cancel { background: #fff; }
+.btn-cancel:hover { background: #f5f5f5; }
+.btn-delete { background: #fff; color: #dc2626; border-color: #fca5a5; margin-right: auto; }
+.btn-delete:hover { background: #fef2f2; }
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="authScreen" class="auth-screen" style="display:none;">
+    <div class="auth-box">
+        <h1>Task Board</h1>
+        <p style="color:#666;font-size:0.85rem;margin-bottom:1rem;">Enter passphrase to continue</p>
+        <input type="password" id="passphraseInput" placeholder="Passphrase" autocomplete="off">
+        <button onclick="doAuth()">Enter</button>
+        <div id="authError" class="auth-error" style="display:none;"></div>
+    </div>
+</div>
+
+<!-- Main App -->
+<div id="appMain" style="display:none;">
+    <div class="header">
+        <h1>Portfolio Acquisition Task Board</h1>
+        <span id="syncIndicator" class="sync-indicator">Syncing...</span>
+    </div>
+    <div class="board">
+        <div class="column">
+            <div class="column-header catherine">
+                <span>Catherine</span>
+                <button class="add-btn" onclick="openModal('catherine')">+ Add Task</button>
+            </div>
+            <div id="col-catherine" class="column-body"></div>
+        </div>
+        <div class="column">
+            <div class="column-header adam">
+                <span>Adam</span>
+                <button class="add-btn" onclick="openModal('adam')">+ Add Task</button>
+            </div>
+            <div id="col-adam" class="column-body"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <h2 id="modalTitle">Add Task</h2>
+        <div class="form-group">
+            <label>Title *</label>
+            <input type="text" id="fTitle" placeholder="Task title">
+        </div>
+        <div class="form-group">
+            <label>Assignee</label>
+            <div class="toggle-group" id="fAssignee">
+                <button class="toggle-btn" data-val="catherine" onclick="setToggle('fAssignee','catherine')">Catherine</button>
+                <button class="toggle-btn" data-val="adam" onclick="setToggle('fAssignee','adam')">Adam</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Priority</label>
+            <div class="toggle-group" id="fPriority">
+                <button class="toggle-btn" data-val="high" onclick="setToggle('fPriority','high')">High</button>
+                <button class="toggle-btn" data-val="med" onclick="setToggle('fPriority','med')">Med</button>
+                <button class="toggle-btn" data-val="low" onclick="setToggle('fPriority','low')">Low</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Status</label>
+            <div class="toggle-group" id="fStatus">
+                <button class="toggle-btn" data-val="todo" onclick="setToggle('fStatus','todo')">To Do</button>
+                <button class="toggle-btn" data-val="in_progress" onclick="setToggle('fStatus','in_progress')">In Progress</button>
+                <button class="toggle-btn" data-val="done" onclick="setToggle('fStatus','done')">Done</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Due Date</label>
+            <input type="date" id="fDueDate">
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea id="fNotes" placeholder="Optional notes"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-delete" id="btnDelete" style="display:none" onclick="deleteTask()">Delete</button>
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-save" onclick="saveTask()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let tasks = [];
+let lastHash = "";
+let editingId = null;
+let pollTimer = null;
+const toggleState = {};
+
+// --- Auth ---
+async function checkAuth() {
+    try {
+        const r = await fetch("/api/tasks");
+        if (r.status === 401) { showAuth(); return; }
+        showApp();
+    } catch { showAuth(); }
+}
+
+function showAuth() {
+    document.getElementById("authScreen").style.display = "flex";
+    document.getElementById("appMain").style.display = "none";
+    document.getElementById("passphraseInput").focus();
+}
+
+function showApp() {
+    document.getElementById("authScreen").style.display = "none";
+    document.getElementById("appMain").style.display = "block";
+    loadTasks();
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(loadTasks, 5000);
+}
+
+async function doAuth() {
+    const pw = document.getElementById("passphraseInput").value;
+    const errEl = document.getElementById("authError");
+    try {
+        const r = await fetch("/api/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ passphrase: pw })
+        });
+        if (!r.ok) {
+            errEl.textContent = "Wrong passphrase";
+            errEl.style.display = "block";
+            return;
+        }
+        errEl.style.display = "none";
+        showApp();
+    } catch {
+        errEl.textContent = "Connection error";
+        errEl.style.display = "block";
+    }
+}
+
+document.getElementById("passphraseInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") doAuth();
+});
+
+// --- Data ---
+async function loadTasks() {
+    try {
+        const r = await fetch("/api/tasks");
+        if (r.status === 401) { showAuth(); return; }
+        const data = await r.json();
+        const hash = JSON.stringify(data);
+        if (hash !== lastHash) {
+            tasks = data;
+            lastHash = hash;
+            renderBoard();
+        }
+        document.getElementById("syncIndicator").textContent = "Last synced: " + new Date().toLocaleTimeString();
+    } catch {
+        document.getElementById("syncIndicator").textContent = "Sync error";
+    }
+}
+
+// --- Render ---
+function renderBoard() {
+    renderColumn("catherine");
+    renderColumn("adam");
+}
+
+function renderColumn(assignee) {
+    const col = document.getElementById("col-" + assignee);
+    const myTasks = tasks.filter(t => t.assignee === assignee);
+    const inProgress = myTasks.filter(t => t.status === "in_progress").sort((a, b) => a.sort_order - b.sort_order);
+    const todo = myTasks.filter(t => t.status === "todo").sort((a, b) => a.sort_order - b.sort_order);
+    const done = myTasks.filter(t => t.status === "done").sort((a, b) => a.sort_order - b.sort_order);
+
+    const doneKey = "done_collapsed_" + assignee;
+    const doneCollapsed = localStorage.getItem(doneKey) !== "false";
+
+    let html = "";
+
+    if (inProgress.length) {
+        html += `<div class="status-group">
+            <div class="status-group-header">In Progress <span class="count">${inProgress.length}</span></div>
+            ${inProgress.map((t, i) => taskCard(t, i, inProgress.length)).join("")}
+        </div>`;
+    }
+
+    html += `<div class="status-group">
+        <div class="status-group-header">To Do <span class="count">${todo.length}</span></div>
+        ${todo.length ? todo.map((t, i) => taskCard(t, i, todo.length)).join("") : '<p style="color:#aaa;font-size:0.8rem;padding:0.5rem;">No tasks</p>'}
+    </div>`;
+
+    if (done.length) {
+        html += `<div class="status-group">
+            <div class="status-group-header" onclick="toggleDone('${assignee}')">
+                Done <span class="count">${done.length}</span>
+                <span class="toggle">${doneCollapsed ? "Show" : "Hide"}</span>
+            </div>
+            ${doneCollapsed ? "" : done.map((t, i) => taskCard(t, i, done.length)).join("")}
+        </div>`;
+    }
+
+    col.innerHTML = html;
+}
+
+function toggleDone(assignee) {
+    const key = "done_collapsed_" + assignee;
+    const current = localStorage.getItem(key) !== "false";
+    localStorage.setItem(key, !current);
+    renderBoard();
+}
+
+function taskCard(t, idx, total) {
+    const today = new Date().toISOString().slice(0, 10);
+    const overdue = t.due_date && t.due_date < today && t.status !== "done";
+    const isDone = t.status === "done";
+    const isIP = t.status === "in_progress";
+    const notesPreview = t.notes ? (t.notes.length > 80 ? t.notes.slice(0, 80) + "..." : t.notes) : "";
+
+    return `<div class="task-card${isDone ? " done" : ""}${isIP ? " in-progress" : ""}">
+        <div class="task-top">
+            <input type="checkbox" class="task-checkbox" ${isDone ? "checked" : ""} onchange="toggleDoneStatus(${t.id}, this.checked)">
+            <div class="task-body">
+                <div class="task-title${isDone ? " done-title" : ""}">${esc(t.title)}</div>
+                <div class="task-meta">
+                    <span class="badge badge-${t.priority}">${t.priority}</span>
+                    ${t.due_date ? `<span class="due-date${overdue ? " overdue" : ""}">Due ${t.due_date}</span>` : ""}
+                </div>
+                ${notesPreview ? `<div class="task-notes" onclick="openModal(null,${t.id})" title="${esc(t.notes)}">${esc(notesPreview)}</div>` : ""}
+            </div>
+            <div class="task-actions">
+                <button title="Move up" onclick="moveTask(${t.id},-1)" ${idx === 0 ? "disabled" : ""}>&#9650;</button>
+                <button title="Move down" onclick="moveTask(${t.id},1)" ${idx === total - 1 ? "disabled" : ""}>&#9660;</button>
+                <button title="Edit" onclick="openModal(null,${t.id})">&#9998;</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function esc(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// --- Actions ---
+async function toggleDoneStatus(id, checked) {
+    await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: checked ? "done" : "todo" })
+    });
+    loadTasks();
+}
+
+async function moveTask(id, direction) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    // Get tasks with same assignee and status, sorted
+    const group = tasks
+        .filter(x => x.assignee === t.assignee && x.status === t.status)
+        .sort((a, b) => a.sort_order - b.sort_order);
+    const idx = group.findIndex(x => x.id === id);
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= group.length) return;
+
+    // Swap sort_orders
+    const otherId = group[newIdx].id;
+    const myOrder = group[idx].sort_order;
+    const otherOrder = group[newIdx].sort_order;
+
+    await Promise.all([
+        fetch(`/api/tasks/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: otherOrder }) }),
+        fetch(`/api/tasks/${otherId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: myOrder }) }),
+    ]);
+    loadTasks();
+}
+
+// --- Modal ---
+function setToggle(groupId, val) {
+    toggleState[groupId] = val;
+    const btns = document.querySelectorAll(`#${groupId} .toggle-btn`);
+    btns.forEach(b => {
+        const v = b.dataset.val;
+        b.className = "toggle-btn";
+        if (v === val) {
+            if (groupId === "fPriority") b.classList.add("active-" + v);
+            else b.classList.add("active");
+        }
+    });
+}
+
+function openModal(assignee, taskId) {
+    editingId = taskId || null;
+    const modal = document.getElementById("modalOverlay");
+
+    if (editingId) {
+        const t = tasks.find(x => x.id === editingId);
+        if (!t) return;
+        document.getElementById("modalTitle").textContent = "Edit Task";
+        document.getElementById("fTitle").value = t.title;
+        document.getElementById("fNotes").value = t.notes || "";
+        document.getElementById("fDueDate").value = t.due_date || "";
+        setToggle("fAssignee", t.assignee);
+        setToggle("fPriority", t.priority);
+        setToggle("fStatus", t.status);
+        document.getElementById("btnDelete").style.display = "block";
+    } else {
+        document.getElementById("modalTitle").textContent = "Add Task";
+        document.getElementById("fTitle").value = "";
+        document.getElementById("fNotes").value = "";
+        document.getElementById("fDueDate").value = "";
+        setToggle("fAssignee", assignee || "catherine");
+        setToggle("fPriority", "med");
+        setToggle("fStatus", "todo");
+        document.getElementById("btnDelete").style.display = "none";
+    }
+
+    modal.classList.add("active");
+    setTimeout(() => document.getElementById("fTitle").focus(), 100);
+}
+
+function closeModal() {
+    document.getElementById("modalOverlay").classList.remove("active");
+    editingId = null;
+}
+
+async function saveTask() {
+    const title = document.getElementById("fTitle").value.trim();
+    if (!title) { document.getElementById("fTitle").focus(); return; }
+
+    const data = {
+        title,
+        assignee: toggleState.fAssignee || "catherine",
+        priority: toggleState.fPriority || "med",
+        status: toggleState.fStatus || "todo",
+        notes: document.getElementById("fNotes").value,
+        due_date: document.getElementById("fDueDate").value || null,
+    };
+
+    if (editingId) {
+        await fetch(`/api/tasks/${editingId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+    } else {
+        await fetch("/api/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+    }
+
+    closeModal();
+    loadTasks();
+}
+
+async function deleteTask() {
+    if (!editingId) return;
+    if (!confirm("Delete this task?")) return;
+    await fetch(`/api/tasks/${editingId}`, { method: "DELETE" });
+    closeModal();
+    loadTasks();
+}
+
+// Keyboard shortcut: Escape to close modal
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeModal();
+});
+
+// --- Init ---
+checkAuth();
+</script>
+</body>
+</html>
